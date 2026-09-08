@@ -23,12 +23,30 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Verify AndroidX configuration
+      - name: Verify AndroidX and Kotlin/Java JVM configuration
         run: |
           echo "android.useAndroidX=true" >> "$GITHUB_WORKSPACE/gradle.properties"
           echo "android.enableJetifier=true" >> "$GITHUB_WORKSPACE/gradle.properties"
           echo "--- gradle.properties ---"
           cat "$GITHUB_WORKSPACE/gradle.properties"
+      - name: Repair Kotlin source syntax before build
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt')
+          s = p.read_text(encoding='utf-8')
+          if 'import androidx.activity.compose.setContent' not in s:
+              s = s.replace('import androidx.activity.ComponentActivity\n', 'import androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\n')
+          s = s.replace('runOnUiThread{Toast.makeText', 'act.runOnUiThread{Toast.makeText')
+          lines = s.splitlines()
+          while lines and not lines[-1].strip():
+              lines.pop()
+          if lines and lines[-1].strip() == '}':
+              lines.pop()
+          p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          echo "--- MainActivity.kt ending ---"
+          tail -n 5 app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
       - name: Build debug APK
         run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug --stacktrace
       - name: Upload APK
