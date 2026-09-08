@@ -43,10 +43,13 @@ jobs:
               lines.pop()
           if lines and lines[-1].strip() == '}':
               lines.pop()
+          # The generated source has one additional top-level closing brace at line 63.
+          if len(lines) >= 63 and lines[62].strip() == '}':
+              del lines[62]
           p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
           PY
           echo "--- MainActivity.kt ending ---"
-          tail -n 5 app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          tail -n 8 app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
       - name: Build debug APK
         run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug --stacktrace
       - name: Upload APK
