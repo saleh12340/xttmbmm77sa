@@ -137,7 +137,6 @@ fun AziziApp() {
 private fun InvoiceView(no: Int, c: String, ph: String, pay: String, n: String, q: String, totalInput: String, rows: List<SaleLine>, sc: (String) -> Unit, sph: (String) -> Unit, spay: (String) -> Unit, sn: (String) -> Unit, sq: (String) -> Unit, st: (String) -> Unit, srows: (List<SaleLine>) -> Unit, save: () -> Unit, customer: () -> Unit, print: () -> Unit, share: () -> Unit) {
     val grand = rows.sumOf { it.total }
     val fieldShape = RoundedCornerShape(18.dp)
-    val fieldShape = RoundedCornerShape(18.dp)
     Column(Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Info("رقم", no.toString(), Modifier.weight(1f)); Info("الأصناف", rows.size.toString(), Modifier.weight(1f)); Info("الإجمالي", money(grand), Modifier.weight(1f))
