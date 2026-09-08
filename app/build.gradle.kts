@@ -4,10 +4,36 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-android { namespace = "com.azizi.pos.nativeapp"; compileSdk = 35
-    defaultConfig { applicationId = "com.azizi.pos.nativeapp"; minSdk = 26; targetSdk = 35; versionCode = 1; versionName = "1.0" }
-    buildFeatures { compose = true }
-    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+android {
+    namespace = "com.azizi.pos.nativeapp"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.azizi.pos.nativeapp"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
 }
 
 dependencies {
