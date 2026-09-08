@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -133,6 +136,7 @@ fun AziziApp() {
 @Composable
 private fun InvoiceView(no: Int, c: String, ph: String, pay: String, n: String, q: String, totalInput: String, rows: List<SaleLine>, sc: (String) -> Unit, sph: (String) -> Unit, spay: (String) -> Unit, sn: (String) -> Unit, sq: (String) -> Unit, st: (String) -> Unit, srows: (List<SaleLine>) -> Unit, save: () -> Unit, customer: () -> Unit, print: () -> Unit, share: () -> Unit) {
     val grand = rows.sumOf { it.total }
+    val fieldShape = RoundedCornerShape(18.dp)
     Column(Modifier.fillMaxSize().padding(10.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Info("رقم", no.toString(), Modifier.weight(1f)); Info("الأصناف", rows.size.toString(), Modifier.weight(1f)); Info("الإجمالي", money(grand), Modifier.weight(1f))
@@ -140,8 +144,8 @@ private fun InvoiceView(no: Int, c: String, ph: String, pay: String, n: String, 
         Card(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
             Column(Modifier.padding(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Person, null); Spacer(Modifier.width(6.dp)); Text("بيانات العميل", fontWeight = FontWeight.Bold) }
-                Row(verticalAlignment = Alignment.CenterVertically) { OutlinedTextField(c, sc, label = { Text("اسم العميل") }, modifier = Modifier.weight(1f)); IconButton(customer) { Icon(Icons.Default.PersonAdd, "عميل جديد") } }
-                OutlinedTextField(ph, sph, label = { Text("رقم الهاتف / واتساب") }, modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically) { OutlinedTextField(c, sc, label = { Text("اسم العميل") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true); IconButton(customer) { Icon(Icons.Default.PersonAdd, "عميل جديد") } }
+                OutlinedTextField(ph, sph, label = { Text("رقم الهاتف / واتساب") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true)
                 Row { FilterChip(pay == "نقدي", { spay("نقدي") }, { Text("نقدي") }); Spacer(Modifier.width(6.dp)); FilterChip(pay == "آجل", { spay("آجل") }, { Text("آجل") }) }
             }
         }
@@ -151,9 +155,9 @@ private fun InvoiceView(no: Int, c: String, ph: String, pay: String, n: String, 
                 Spacer(Modifier.height(7.dp))
                 // RTL order: إجمالي القيمة (right) ← الكمية ← التفاصيل (left)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), singleLine = true)
-                    OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), singleLine = true)
+                    OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+                    OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+                    OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true)
                     FilledIconButton(onClick = {
                         val total = totalInput.toDoubleOrNull() ?: 0.0
                         val quantity = q.toDoubleOrNull() ?: 0.0
@@ -198,7 +202,7 @@ private fun InvoiceView(no: Int, c: String, ph: String, pay: String, n: String, 
 
 @Composable private fun ReportsView(inv: List<InvoiceRow>, cus: List<CustomerRow>) { val total = inv.sumOf { it.total }; Column(Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState())) { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Assessment, null); Spacer(Modifier.width(6.dp)); Text("التقارير", fontSize = 24.sp, fontWeight = FontWeight.Bold) }; Spacer(Modifier.height(10.dp)); Info("إجمالي المبيعات", "${money(total)} ر.ي", Modifier.fillMaxWidth()); Info("نقدي", "${money(inv.filter { it.payment == "نقدي" }.sumOf { it.total })} ر.ي", Modifier.fillMaxWidth().padding(top = 6.dp)); Info("آجل", "${money(inv.filter { it.payment != "نقدي" }.sumOf { it.total })} ر.ي", Modifier.fillMaxWidth().padding(top = 6.dp)); Info("أرصدة العملاء", "${money(cus.sumOf { it.balance })} ر.ي", Modifier.fillMaxWidth().padding(top = 6.dp)); Text("التقارير مبنية على قاعدة SQLite المحلية داخل التطبيق.", fontSize = 12.sp, modifier = Modifier.padding(top = 12.dp)) } }
 
-@Composable private fun CustomerDialog(list: List<CustomerRow>, initial: String, initialPhone: String, save: (String, String) -> Unit, cancel: () -> Unit) { var n by remember { mutableStateOf(if (initial == "عميل نقدي") "" else initial) }; var p by remember { mutableStateOf(initialPhone) }; AlertDialog(onDismissRequest = cancel, title = { Text("👤 حفظ عميل جديد") }, text = { Column { OutlinedTextField(n, { n = it }, label = { Text("اسم العميل") }); OutlinedTextField(p, { p = it }, label = { Text("الهاتف / واتساب") }); if (n.isNotBlank() && list.any { it.name.equals(n, true) }) Text("العميل مسجل مسبقاً وسيتم ربط الفاتورة به.", color = Blue, fontSize = 12.sp) } }, confirmButton = { Button({ if (n.isNotBlank()) save(n.trim(), p.trim()) }) { Text("حفظ") } }, dismissButton = { TextButton(cancel) { Text("إلغاء") } }) }
+@Composable private fun CustomerDialog(list: List<CustomerRow>, initial: String, initialPhone: String, save: (String, String) -> Unit, cancel: () -> Unit) { var n by remember { mutableStateOf(if (initial == "عميل نقدي") "" else initial) }; var p by remember { mutableStateOf(initialPhone) }; AlertDialog(onDismissRequest = cancel, title = { Text("👤 حفظ عميل جديد") }, text = { Column { OutlinedTextField(n, { n = it }, label = { Text("اسم العميل") }, shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true); OutlinedTextField(p, { p = it }, label = { Text("الهاتف / واتساب") }, shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true); if (n.isNotBlank() && list.any { it.name.equals(n, true) }) Text("العميل مسجل مسبقاً وسيتم ربط الفاتورة به.", color = Blue, fontSize = 12.sp) } }, confirmButton = { Button({ if (n.isNotBlank()) save(n.trim(), p.trim()) }) { Text("حفظ") } }, dismissButton = { TextButton(cancel) { Text("إلغاء") } }) }
 
 @Composable private fun SettingsDialog(dark: Boolean, setDark: (Boolean) -> Unit, printer: () -> Unit, onClose: () -> Unit) { AlertDialog(onDismissRequest = onClose, title = { Text("⚙️ إعدادات الكاشير") }, text = { Column { Row(verticalAlignment = Alignment.CenterVertically) { Text("الوضع الداكن", Modifier.weight(1f)); Switch(dark, setDark) }; Text("الطابعة الحرارية: Bluetooth فقط", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp)); Text("الإيصال الحراري: 58mm / 384px", fontSize = 12.sp); Button(printer, Modifier.fillMaxWidth().padding(top = 8.dp)) { Icon(Icons.Default.Bluetooth, null); Text("اختيار الطابعة") } } }, confirmButton = { TextButton(onClick = onClose) { Text("إغلاق") } }) }
 
