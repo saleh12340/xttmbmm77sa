@@ -36,6 +36,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p = Path('app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt')
           s = p.read_text(encoding='utf-8')
           if 'import androidx.compose.foundation.text.KeyboardOptions' not in s:
@@ -44,7 +45,9 @@ jobs:
               s = s.replace('import androidx.compose.ui.text.font.FontWeight\n', 'import androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.input.KeyboardType\n')
           if 'import androidx.compose.foundation.shape.RoundedCornerShape' not in s:
               s = s.replace('import androidx.compose.foundation.rememberScrollState\n', 'import androidx.compose.foundation.rememberScrollState\nimport androidx.compose.foundation.shape.RoundedCornerShape\n')
-          s = s.replace('    val grand = rows.sumOf { it.total }\n', '    val grand = rows.sumOf { it.total }\n    val fieldShape = RoundedCornerShape(18.dp)\n')
+          s = s.replace('    val grand = rows.sumOf { it.total }\n', '    val grand = rows.sumOf { it.total }\n    val fieldShape = RoundedCornerShape(18.dp)\n', 1)
+          s = re.sub(r'(?m)^\s*val fieldShape = RoundedCornerShape\(18\.dp\)\s*$', '    val fieldShape = RoundedCornerShape(18.dp)', s)
+          s = re.sub(r'(?m)^(    val fieldShape = RoundedCornerShape\(18\.dp\)\n)+', '    val fieldShape = RoundedCornerShape(18.dp)\n', s)
           s = s.replace('OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), singleLine = true)', 'OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)')
           s = s.replace('OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), singleLine = true)', 'OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)')
           s = s.replace('OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), singleLine = true)', 'OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true)')
