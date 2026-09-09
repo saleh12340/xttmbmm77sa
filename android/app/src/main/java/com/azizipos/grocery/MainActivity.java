@@ -94,7 +94,6 @@ public class MainActivity extends BridgeActivity {
     private void openContactPicker() {
         try {
             Intent intent = new Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI);
-            intent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE);
             startActivityForResult(intent, REQUEST_CONTACT);
         } catch (Exception e) {
             try {
@@ -121,15 +120,73 @@ public class MainActivity extends BridgeActivity {
         String name = "", phone = "";
         Cursor cursor = null;
         try {
-            String[] projection = { ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME, ContactsContract.CommonDataKinds.Phone.NUMBER };
+            String[] projection = {
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID
+            };
             cursor = getContentResolver().query(uri, projection, null, null, null);
             if (cursor != null && cursor.moveToFirst()) {
                 int ni = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME);
                 int pi = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
-                if (ni >= 0) name = cursor.getString(ni);
-                if (pi >= 0) phone = cursor.getString(pi);
+                int ci = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID);
+                if (ni >= 0 && !cursor.isNull(ni)) name = cursor.getString(ni);
+                if (pi >= 0 && !cursor.isNull(pi)) phone = cursor.getString(pi);
+                if ((phone == null || phone.trim().isEmpty()) && ci >= 0 && !cursor.isNull(ci)) {
+                    String contactId = cursor.getString(ci);
+                    Cursor phoneCursor = null;
+                    try {
+                        String[] phoneProjection = {
+                                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                                ContactsContract.CommonDataKinds.Phone.IS_PRIMARY,
+                                ContactsContract.CommonDataKinds.Phone._ID
+                        };
+                        phoneCursor = getContentResolver().query(
+                                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                phoneProjection,
+                                ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",
+                                new String[]{contactId},
+                                ContactsContract.CommonDataKinds.Phone.IS_PRIMARY + " DESC, " + ContactsContract.CommonDataKinds.Phone._ID + " ASC"
+                        );
+                        if (phoneCursor != null && phoneCursor.moveToFirst()) {
+                            int pidx = phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                            if (pidx >= 0 && !phoneCursor.isNull(pidx)) phone = phoneCursor.getString(pidx);
+                        }
+                    } finally { if (phoneCursor != null) phoneCursor.close(); }
+                }
             }
-        } catch (Exception ignored) {} finally { if (cursor != null) cursor.close(); }
+        } catch (Exception ignored) {
+            // Some contact providers return a Contacts URI instead of a Phone URI.
+            try {
+                Cursor contactCursor = null;
+                try {
+                    String[] cp = {ContactsContract.Contacts._ID, ContactsContract.Contacts.DISPLAY_NAME, ContactsContract.Contacts.HAS_PHONE_NUMBER};
+                    contactCursor = getContentResolver().query(uri, cp, null, null, null);
+                    if (contactCursor != null && contactCursor.moveToFirst()) {
+                        int idIndex = contactCursor.getColumnIndex(ContactsContract.Contacts._ID);
+                        int nameIndex = contactCursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
+                        if (nameIndex >= 0 && !contactCursor.isNull(nameIndex)) name = contactCursor.getString(nameIndex);
+                        if (idIndex >= 0 && !contactCursor.isNull(idIndex)) {
+                            String contactId = contactCursor.getString(idIndex);
+                            Cursor phoneCursor = null;
+                            try {
+                                phoneCursor = getContentResolver().query(
+                                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                                        new String[]{ContactsContract.CommonDataKinds.Phone.NUMBER},
+                                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",
+                                        new String[]{contactId},
+                                        ContactsContract.CommonDataKinds.Phone.IS_PRIMARY + " DESC, " + ContactsContract.CommonDataKinds.Phone._ID + " ASC"
+                                );
+                                if (phoneCursor != null && phoneCursor.moveToFirst()) {
+                                    int pidx = phoneCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
+                                    if (pidx >= 0 && !phoneCursor.isNull(pidx)) phone = phoneCursor.getString(pidx);
+                                }
+                            } finally { if (phoneCursor != null) phoneCursor.close(); }
+                        }
+                    }
+                } finally { if (contactCursor != null) contactCursor.close(); }
+            } catch (Exception ignoredAgain) {}
+        } finally { if (cursor != null) cursor.close(); }
         final String resultName = name == null ? "" : name;
         final String resultPhone = phone == null ? "" : phone;
         getBridge().getWebView().post(() -> getBridge().getWebView().evaluateJavascript(
