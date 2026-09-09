@@ -2,9 +2,14 @@ package com.azizipos.grocery;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -22,18 +27,22 @@ import androidx.core.content.FileProvider;
 
 import com.getcapacitor.BridgeActivity;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class MainActivity extends BridgeActivity {
     private static final int REQUEST_ANDROID_PERMISSIONS = 7001;
+    private static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private boolean exitDialogVisible = false;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
+    @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         WebView webView = getBridge().getWebView();
         webView.addJavascriptInterface(new AziziAndroidBridge(), "AndroidAzizi");
@@ -89,14 +98,12 @@ public class MainActivity extends BridgeActivity {
                     File file = new File(getCacheDir(), safeName);
                     try (FileOutputStream out = new FileOutputStream(file)) { out.write(imageBytes); }
                     Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", file);
-
                     Intent intent = new Intent(Intent.ACTION_SEND);
                     intent.setType("image/png");
                     intent.putExtra(Intent.EXTRA_STREAM, contentUri);
                     intent.putExtra(Intent.EXTRA_TEXT, text == null ? "" : text);
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     intent.setClipData(android.content.ClipData.newRawUri("إيصال بقالة العزي", contentUri));
-
                     String cleanPhone = normalizeYemeniPhone(phone);
                     String targetPackage = findWhatsAppPackage();
                     if (targetPackage != null) {
@@ -106,12 +113,8 @@ public class MainActivity extends BridgeActivity {
                             intent.putExtra("address", cleanPhone);
                         }
                         startActivity(intent);
-                    } else {
-                        startActivity(Intent.createChooser(intent, "إرسال الفاتورة عبر واتساب"));
-                    }
-                } catch (Exception e) {
-                    shareTextToWhatsApp(text, phone);
-                }
+                    } else startActivity(Intent.createChooser(intent, "إرسال الفاتورة عبر واتساب"));
+                } catch (Exception e) { shareTextToWhatsApp(text, phone); }
             });
         }
 
@@ -151,13 +154,10 @@ public class MainActivity extends BridgeActivity {
                         values.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/بقالة العزي");
                         Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
                         if (uri == null) throw new Exception("MediaStore insert failed");
-                        try (OutputStream out = getContentResolver().openOutputStream(uri)) {
-                            if (out == null) throw new Exception("Output stream unavailable");
-                            out.write(bytes);
-                        }
+                        try (OutputStream out = getContentResolver().openOutputStream(uri)) { if (out == null) throw new Exception("Output unavailable"); out.write(bytes); }
                     } else {
                         File dir = new File(getExternalFilesDir(null), "صور_بقالة_العزي");
-                        if (!dir.exists() && !dir.mkdirs()) throw new Exception("Cannot create image directory");
+                        if (!dir.exists() && !dir.mkdirs()) throw new Exception("Cannot create directory");
                         try (FileOutputStream out = new FileOutputStream(new File(dir, safeName))) { out.write(bytes); }
                     }
                 } catch (Exception ignored) {}
@@ -181,6 +181,90 @@ public class MainActivity extends BridgeActivity {
                     printWebView.loadDataWithBaseURL("https://app.local/", html == null ? "" : html, "text/html", "UTF-8", null);
                 } catch (Exception ignored) {}
             });
+        }
+
+        @JavascriptInterface
+        public void printBluetoothReceipt(String base64Png) {
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    requestRequiredAndroidPermissions();
+                    return;
+                }
+                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                if (adapter == null || !adapter.isEnabled()) {
+                    new AlertDialog.Builder(MainActivity.this).setTitle("الطابعة البلوتوث").setMessage("فعّل البلوتوث أولاً ثم أعد المحاولة.").setPositiveButton("حسناً", null).show();
+                    return;
+                }
+                Set<BluetoothDevice> bonded = adapter.getBondedDevices();
+                List<BluetoothDevice> devices = new ArrayList<>(bonded);
+                if (devices.isEmpty()) {
+                    new AlertDialog.Builder(MainActivity.this).setTitle("الطابعة البلوتوث").setMessage("لا توجد طابعة مقترنة. قم بإقران الطابعة من إعدادات البلوتوث ثم أعد المحاولة.").setPositiveButton("حسناً", null).show();
+                    return;
+                }
+                String[] names = new String[devices.size()];
+                for (int i = 0; i < devices.size(); i++) names[i] = (devices.get(i).getName() == null ? "جهاز Bluetooth" : devices.get(i).getName()) + "\n" + devices.get(i).getAddress();
+                new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("اختر الطابعة البلوتوث")
+                        .setItems(names, (dialog, which) -> sendEscPosToDevice(devices.get(which), base64Png))
+                        .setNegativeButton("إلغاء", null)
+                        .show();
+            });
+        }
+
+        private void sendEscPosToDevice(BluetoothDevice device, String base64Png) {
+            new Thread(() -> {
+                BluetoothSocket socket = null;
+                try {
+                    byte[] imageBytes = Base64.decode(base64Png, Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                    if (bitmap == null) throw new Exception("Invalid receipt image");
+                    int targetWidth = 384;
+                    int targetHeight = Math.max(1, Math.round(bitmap.getHeight() * (targetWidth / (float) bitmap.getWidth())));
+                    Bitmap scaled = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true);
+                    socket = device.createRfcommSocketToServiceRecord(SPP_UUID);
+                    socket.connect();
+                    OutputStream out = socket.getOutputStream();
+                    out.write(new byte[]{0x1B, 0x40});
+                    out.write(new byte[]{0x1B, 0x61, 0x01});
+                    out.write(new byte[]{0x1B, 0x33, 0x00});
+                    out.write(bitmapToRaster(scaled));
+                    out.write(new byte[]{0x0A, 0x0A, 0x0A});
+                    out.write(new byte[]{0x1D, 0x56, 0x00});
+                    out.flush();
+                    scaled.recycle();
+                    bitmap.recycle();
+                    socket.close();
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this, "تم إرسال الفاتورة إلى الطابعة", android.widget.Toast.LENGTH_SHORT).show());
+                } catch (Exception e) {
+                    try { if (socket != null) socket.close(); } catch (Exception ignored) {}
+                    runOnUiThread(() -> new AlertDialog.Builder(MainActivity.this).setTitle("تعذر الطباعة").setMessage("تأكد من اقتران الطابعة وتشغيلها وأنها تدعم ESC/POS ثم حاول مرة أخرى.").setPositiveButton("حسناً", null).show());
+                }
+            }).start();
+        }
+
+        private byte[] bitmapToRaster(Bitmap bitmap) throws Exception {
+            int width = bitmap.getWidth();
+            int height = bitmap.getHeight();
+            int bytesPerRow = (width + 7) / 8;
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            out.write(new byte[]{0x1D, 0x76, 0x30, 0x00, (byte)(bytesPerRow & 0xFF), (byte)((bytesPerRow >> 8) & 0xFF), (byte)(height & 0xFF), (byte)((height >> 8) & 0xFF)});
+            int[] pixels = new int[width];
+            for (int y = 0; y < height; y++) {
+                bitmap.getPixels(pixels, 0, width, 0, y, width, 1);
+                for (int xByte = 0; xByte < bytesPerRow; xByte++) {
+                    int value = 0;
+                    for (int bit = 0; bit < 8; bit++) {
+                        int x = xByte * 8 + bit;
+                        if (x < width) {
+                            int c = pixels[x];
+                            int gray = (android.graphics.Color.red(c) * 299 + android.graphics.Color.green(c) * 587 + android.graphics.Color.blue(c) * 114) / 1000;
+                            if (gray < 180) value |= (0x80 >> bit);
+                        }
+                    }
+                    out.write(value);
+                }
+            }
+            return out.toByteArray();
         }
 
         private String normalizeYemeniPhone(String phone) {
