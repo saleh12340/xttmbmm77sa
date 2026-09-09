@@ -32,57 +32,13 @@ jobs:
           echo "android.enableJetifier=true" >> "$GITHUB_WORKSPACE/gradle.properties"
           echo "--- gradle.properties ---"
           cat "$GITHUB_WORKSPACE/gradle.properties"
-      - name: Polish Compose input fields and persist source
+      - name: Verify Kotlin source
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt')
-          s = p.read_text(encoding='utf-8')
-          if 'import androidx.compose.foundation.text.KeyboardOptions' not in s:
-              s = s.replace('import androidx.compose.foundation.verticalScroll\n', 'import androidx.compose.foundation.verticalScroll\nimport androidx.compose.foundation.text.KeyboardOptions\n')
-          if 'import androidx.compose.ui.text.input.KeyboardType' not in s:
-              s = s.replace('import androidx.compose.ui.text.font.FontWeight\n', 'import androidx.compose.ui.text.font.FontWeight\nimport androidx.compose.ui.text.input.KeyboardType\n')
-          if 'import androidx.compose.foundation.shape.RoundedCornerShape' not in s:
-              s = s.replace('import androidx.compose.foundation.rememberScrollState\n', 'import androidx.compose.foundation.rememberScrollState\nimport androidx.compose.foundation.shape.RoundedCornerShape\n')
-          s = s.replace('    val grand = rows.sumOf { it.total }\n', '    val grand = rows.sumOf { it.total }\n    val fieldShape = RoundedCornerShape(18.dp)\n', 1)
-          s = re.sub(r'(?m)^\s*val fieldShape = RoundedCornerShape\(18\.dp\)\s*$', '    val fieldShape = RoundedCornerShape(18.dp)', s)
-          s = re.sub(r'(?m)^(    val fieldShape = RoundedCornerShape\(18\.dp\)\n)+', '    val fieldShape = RoundedCornerShape(18.dp)\n', s)
-          s = s.replace('OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), singleLine = true)', 'OutlinedTextField(totalInput, st, label = { Text("القيمة الإجمالية") }, modifier = Modifier.weight(1f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)')
-          s = s.replace('OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), singleLine = true)', 'OutlinedTextField(q, sq, label = { Text("الكمية") }, modifier = Modifier.weight(.72f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)')
-          s = s.replace('OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), singleLine = true)', 'OutlinedTextField(n, sn, label = { Text("التفاصيل") }, modifier = Modifier.weight(1.65f), shape = fieldShape, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true)')
-          s = s.replace('OutlinedTextField(c, sc, label = { Text("اسم العميل") }, modifier = Modifier.weight(1f))', 'OutlinedTextField(c, sc, label = { Text("اسم العميل") }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true)')
-          s = s.replace('OutlinedTextField(ph, sph, label = { Text("رقم الهاتف / واتساب") }, modifier = Modifier.fillMaxWidth())', 'OutlinedTextField(ph, sph, label = { Text("رقم الهاتف / واتساب") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true)')
-          s = s.replace('OutlinedTextField(n, { n = it }, label = { Text("اسم العميل") })', 'OutlinedTextField(n, { n = it }, label = { Text("اسم العميل") }, shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), singleLine = true)')
-          s = s.replace('OutlinedTextField(p, { p = it }, label = { Text("الهاتف / واتساب") })', 'OutlinedTextField(p, { p = it }, label = { Text("الهاتف / واتساب") }, shape = RoundedCornerShape(18.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true)')
-          p.write_text(s, encoding='utf-8')
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
-          git diff --cached --quiet || (git commit -m "Polish rounded numeric and text invoice fields [skip ci]" && git push)
-          echo "--- UI source verification ---"
-          grep -n "fieldShape\|KeyboardType.Decimal\|KeyboardType.Text" app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt | head -20
-      - name: Repair Kotlin source syntax before build
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt')
-          s = p.read_text(encoding='utf-8')
-          if 'import androidx.activity.compose.setContent' not in s:
-              s = s.replace('import androidx.activity.ComponentActivity\n', 'import androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\n')
-          s = s.replace('runOnUiThread{Toast.makeText', 'act.runOnUiThread{Toast.makeText')
-          lines = s.splitlines()
-          while lines and not lines[-1].strip():
-              lines.pop()
-          if lines and lines[-1].strip() == '}':
-              lines.pop()
-          if len(lines) >= 63 and lines[62].strip() == '}':
-              del lines[62]
-          p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-          PY
-          echo "--- MainActivity.kt ending ---"
-          tail -n 8 app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          test -f app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          grep -q "class MainActivity" app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          grep -q "fun AziziApp" app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          grep -q "fun InvoiceScreen" app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          echo "MainActivity.kt structure verified"
       - name: Build debug APK
         run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug --stacktrace
       - name: Upload APK
