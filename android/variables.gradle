@@ -1,5 +1,6 @@
 ext {
-    minSdkVersion = 23
+    // Cordova Android 14 requires API 24+.
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
 
