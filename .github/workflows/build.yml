@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # Force a fresh workflow run after Android build configuration fixes.
+  AZIZI_ANDROID_BUILD_CONFIG: "minSdk24"
+
 jobs:
   build-android:
     name: Build Android APK
