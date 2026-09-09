@@ -32,6 +32,32 @@ jobs:
           echo "android.enableJetifier=true" >> "$GITHUB_WORKSPACE/gradle.properties"
           echo "--- gradle.properties ---"
           cat "$GITHUB_WORKSPACE/gradle.properties"
+      - name: Repair MainActivity structure if needed
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt")
+          s = p.read_text(encoding="utf-8")
+          marker = "\nprivate fun android.graphics.Bitmap.pngBytes()"
+          if marker in s:
+              before, after = s.split(marker, 1)
+              if before.count("{") > before.count("}"):
+                  s = before + "}\n" + marker.lstrip("\n") + after
+                  p.write_text(s, encoding="utf-8")
+                  print("Repaired missing closing brace before pngBytes().")
+              else:
+                  print("MainActivity brace structure already balanced before pngBytes().")
+          else:
+              print("pngBytes marker not found; no source mutation performed.")
+          PY
+          git diff -- app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+          if ! git diff --quiet -- app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
+            git commit -m "Repair MainActivity closing brace [skip ci]"
+            git push
+          fi
       - name: Verify Kotlin source
         run: |
           test -f app/src/main/java/com/azizi/pos/nativeapp/MainActivity.kt
