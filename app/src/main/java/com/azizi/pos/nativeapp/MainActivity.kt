@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() { override fun onCreate(state: Bundle?)
         if(printerOpen)PrinterDialog(printers,{printerOpen=false}){device->printerOpen=false;if(lines.isEmpty())Toast.makeText(ctx,"لا توجد أصناف للطباعة",Toast.LENGTH_SHORT).show()else{val b=NativeServices.receiptBitmap(invoiceNo,storeName,customer,lines,lines.sumOf{it.total},payment);NativeServices.printBluetooth(act,device,b){r->act.runOnUiThread{Toast.makeText(ctx,if(r=="ok")"تمت الطباعة بنجاح" else "فشل الطباعة: $r",Toast.LENGTH_LONG).show()}}}}
     }} }
 }
-
+}
 private fun android.graphics.Bitmap.pngBytes():ByteArray{val out=java.io.ByteArrayOutputStream();compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);return out.toByteArray()}
 
 @Composable private fun InvoiceScreen(invoiceNo:Int,customer:String,phone:String,payment:String,itemName:String,qty:String,totalInput:String,rows:List<SaleLine>,inventory:List<ItemRow>,setCustomer:(String)->Unit,setPhone:(String)->Unit,setPayment:(String)->Unit,setName:(String)->Unit,setQty:(String)->Unit,setTotal:(String)->Unit,setRows:(List<SaleLine>)->Unit,save:()->Unit,chooseCustomer:()->Unit,print:()->Unit,shareImage:()->Unit,sharePdf:()->Unit,shareWhatsApp:()->Unit){val grand=rows.sumOf{it.total};val shape=RoundedCornerShape(16.dp);Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(8.dp)){
