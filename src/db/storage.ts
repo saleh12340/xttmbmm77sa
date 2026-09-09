@@ -396,18 +396,21 @@ export class StorageService {
     purchases.unshift(newPurchase);
     this.savePurchases(purchases);
 
-    // Increase stock of items from purchase
+    // Increase stock of items from purchase and update cost/selling price
     lines.forEach((line) => {
       const existing = items.find((i) => i.name.trim().toLowerCase() === line.name.trim().toLowerCase());
       if (existing) {
         existing.stock += line.qty;
         existing.cost = line.cost;
+        if (line.sellingPrice && line.sellingPrice > 0) {
+          existing.price = line.sellingPrice;
+        }
       } else {
         const nextItemId = items.length > 0 ? Math.max(...items.map((i) => i.id)) + 1 : 1;
         items.push({
           id: nextItemId,
           name: line.name.trim(),
-          price: Math.round(line.cost * 1.2), // Suggest markup 20%
+          price: line.sellingPrice && line.sellingPrice > 0 ? line.sellingPrice : Math.round(line.cost * 1.2),
           cost: line.cost,
           stock: line.qty,
           minStock: 5,
@@ -490,13 +493,34 @@ export class StorageService {
       id: nextId,
       name: name.trim(),
       price,
-      cost: cost || Math.round(price * 0.8),
+      cost: cost !== undefined ? cost : Math.round(price * 0.8),
       stock,
       minStock,
     };
     items.push(newItem);
     this.saveItems(items);
     return newItem;
+  }
+
+  static updateItem(
+    id: number,
+    data: { name: string; price: number; cost?: number; stock?: number; minStock?: number }
+  ): void {
+    const items = this.getItems();
+    const target = items.find((i) => i.id === id);
+    if (target) {
+      target.name = data.name.trim();
+      target.price = data.price;
+      if (data.cost !== undefined) target.cost = data.cost;
+      if (data.stock !== undefined) target.stock = data.stock;
+      if (data.minStock !== undefined) target.minStock = data.minStock;
+      this.saveItems(items);
+    }
+  }
+
+  static deleteItem(id: number): void {
+    const items = this.getItems().filter((i) => i.id !== id);
+    this.saveItems(items);
   }
 
   /**

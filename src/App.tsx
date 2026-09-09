@@ -21,6 +21,7 @@ import { LedgerDialog } from './components/LedgerDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { PrinterDialog } from './components/PrinterDialog';
 import { ReceiptPreviewModal } from './components/ReceiptPreviewModal';
+import { STORE_LOGO_URL } from './assets/logo';
 import {
   ReceiptText,
   Truck,
@@ -278,15 +279,35 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex flex-col font-sans select-none">
-      {/* Top Application Bar */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700/80 px-4 py-2.5 flex items-center justify-between shadow-xs">
-        <div>
-          <h1 className="text-sm font-extrabold text-blue-900 dark:text-blue-300 tracking-tight leading-tight">
-            {settings.storeName}
-          </h1>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            نقطة بيع ومحاسبة وإدارة المخزون • المشتريات والمبيعات
-          </span>
+      {/* Top Application Bar with Prominent Store Logo and Name */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-700/80 px-3 sm:px-4 py-2 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-2.5">
+          <div
+            onClick={() => setSettingsOpen(true)}
+            className="relative cursor-pointer group shrink-0"
+            title="إعدادات المتجر وبيانات التطبيق"
+          >
+            <img
+              src={STORE_LOGO_URL}
+              alt="شعار بقالة العزي"
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border-2 border-emerald-500 shadow-sm ring-2 ring-blue-500/20 group-hover:scale-105 transition"
+              referrerPolicy="no-referrer"
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-800" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-slate-50 tracking-tight leading-tight">
+                {settings.storeName}
+              </h1>
+              <span className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold px-1.5 py-0.2 rounded-md border border-emerald-200 dark:border-emerald-800">
+                المواد الغذائية
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+              نظام الفواتير والمشتريات والمخزون وحسابات العملاء
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
@@ -405,8 +426,16 @@ export const App: React.FC = () => {
               StorageService.adjustStock(id, delta);
               refreshData();
             }}
-            onAddItem={(name, price, stock, minStock) => {
-              StorageService.addItem(name, price, stock, minStock);
+            onAddItem={(name, price, stock, minStock, cost) => {
+              StorageService.addItem(name, price, stock, minStock, cost);
+              refreshData();
+            }}
+            onUpdateItem={(id, data) => {
+              StorageService.updateItem(id, data);
+              refreshData();
+            }}
+            onDeleteItem={(id) => {
+              StorageService.deleteItem(id);
               refreshData();
             }}
           />

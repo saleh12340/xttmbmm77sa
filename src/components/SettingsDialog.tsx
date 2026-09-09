@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { StoreSettings } from '../types';
 import { StorageService } from '../db/storage';
+import { STORE_LOGO_URL } from '../assets/logo';
+import { PWAInstallButton } from './PWAInstallButton';
 import {
   Settings,
   Moon,
@@ -121,6 +123,29 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+          {/* Prominent Logo & Store Identity Card */}
+          <div className="p-3 bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-slate-900/80 dark:to-slate-800/80 rounded-2xl border border-blue-200/70 dark:border-slate-700 flex items-center gap-3">
+            <img
+              src={STORE_LOGO_URL}
+              alt="شعار بقالة العزي"
+              className="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500 shadow-md ring-2 ring-blue-500/20"
+              referrerPolicy="no-referrer"
+            />
+            <div>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 block">شعار وهوية التطبيق</span>
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">بقالة العزي للمواد الغذائية</h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">الشعار الرسمي المعتمد للتطبيق والإيصالات</p>
+            </div>
+          </div>
+
+          {/* Official App Installation & Signing Section */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              تثبيت التطبيق الرسمي على جهازك
+            </label>
+            <PWAInstallButton variant="dialog" />
+          </div>
+
           {/* Store Info */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -131,6 +156,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
                 type="text"
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
                 placeholder="بقالة العزي للمواد الغذائية"
                 required
                 className="w-full pr-10 pl-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100 font-medium"
@@ -146,8 +173,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({
             <div className="relative">
               <input
                 type="tel"
+                inputMode="tel"
                 value={storePhone}
                 onChange={(e) => setStorePhone(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
                 placeholder="777000000"
                 className="w-full pr-10 pl-3 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100"
               />

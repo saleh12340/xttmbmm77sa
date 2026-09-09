@@ -273,12 +273,16 @@ export const LedgerDialog: React.FC<LedgerDialogProps> = ({
               <div className="relative flex-1">
                 <input
                   type="number"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   step="any"
-                  min="1"
+                  min="0.1"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
                   placeholder="المبلغ المدفوع (ر.ي)"
-                  className="w-full pl-3 pr-8 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100"
+                  className="w-full pl-3 pr-8 py-2 text-xs font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-blue-700 dark:text-blue-300"
                 />
                 <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-2.5" />
               </div>
@@ -286,6 +290,8 @@ export const LedgerDialog: React.FC<LedgerDialogProps> = ({
                 type="text"
                 value={paymentNote}
                 onChange={(e) => setPaymentNote(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
                 placeholder="بيان الدفعة"
                 className="w-1/3 px-2 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100"
               />

@@ -96,6 +96,8 @@ export const CustomerDialog: React.FC<CustomerDialogProps> = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
                 placeholder="أدخل اسم العميل (مثلاً: محمد القاسمي)"
                 className="w-full pr-10 pl-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100"
               />
@@ -110,8 +112,11 @@ export const CustomerDialog: React.FC<CustomerDialogProps> = ({
             <div className="relative">
               <input
                 type="tel"
+                inputMode="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
                 placeholder="مثلاً: 777123456"
                 className="w-full pr-10 pl-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 dark:text-slate-100"
               />
@@ -131,6 +136,8 @@ export const CustomerDialog: React.FC<CustomerDialogProps> = ({
                     type="text"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
                     placeholder="بحث..."
                     className="w-full pr-6 pl-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700"
                   />

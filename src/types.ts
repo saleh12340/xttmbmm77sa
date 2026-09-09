@@ -9,6 +9,7 @@ export interface PurchaseLine {
   name: string;
   qty: number;
   cost: number;
+  sellingPrice?: number;
   total: number;
 }
 
