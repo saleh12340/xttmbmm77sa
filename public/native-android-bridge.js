@@ -58,7 +58,7 @@
     };
   }
 
-  // Save generated receipt/account PNG directly into the Android Pictures gallery.
+  // Save generated PNG directly to Android Pictures instead of opening a browser/download page.
   try {
     var originalAnchorClick = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function () {
@@ -74,36 +74,38 @@
     };
   } catch (_) {}
 
-  // Replace the old browser window used by print/PDF with Android's native print framework.
-  // Android's print dialog can send to a configured printer or choose "Save as PDF".
+  // Print/PDF: no external browser, GitHub, or Gemini. Receipt print uses the paired Bluetooth ESC/POS printer.
+  // Other printable documents use Android's native print dialog, which also offers Save as PDF.
   window.open = function (url, target, features) {
     if (url === '' || url == null) {
-      if (android && android.printHtml) {
+      if (android && (android.printBluetoothReceipt || android.printHtml)) {
         var html = '';
         var closed = false;
+        function submitPrint() {
+          if (closed) return;
+          closed = true;
+          if (/طباعة الفاتورة/.test(html) && android.printBluetoothReceipt && lastReceiptCanvas) {
+            try {
+              android.printBluetoothReceipt(canvasBase64(lastReceiptCanvas));
+              return;
+            } catch (_) {}
+          }
+          if (android.printHtml) android.printHtml(html, 'بقالة العزي - مستند');
+        }
         return {
           document: {
             write: function (value) { html += String(value || ''); },
-            close: function () {
-              if (closed) return;
-              closed = true;
-              android.printHtml(html, 'بقالة العزي - فاتورة');
-            }
+            close: submitPrint
           },
           focus: function () {},
-          print: function () {
-            if (!closed) {
-              closed = true;
-              android.printHtml(html, 'بقالة العزي - فاتورة');
-            }
-          },
+          print: submitPrint,
           close: function () {}
         };
       }
       return originalOpen(url, target, features);
     }
 
-    // WhatsApp: keep the operation native and avoid the browser/GitHub/Gemini route.
+    // WhatsApp: open the exact customer chat natively when a phone is available.
     if (typeof url === 'string' && /^https:\/\/(api\.whatsapp\.com|wa\.me)\//i.test(url)) {
       try {
         var parsed = new URL(url);
