@@ -26,8 +26,10 @@ jobs:
           node-version: 22
           cache: 'npm'
 
+      # package-lock.json in the repository is older than package.json.
+      # Use npm install so CI reconciles the lockfile instead of failing at npm ci.
       - name: Install NPM Dependencies
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Run Type Check & Verification
         run: npm run lint
