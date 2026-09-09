@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">بقالة العزي للمواد الغذائية</string>
+    <string name="title_activity_main">بقالة العزي للمواد الغذائية</string>
+    <string name="package_name">com.azizipos.grocery</string>
+    <string name="custom_url_scheme">com.azizipos.grocery</string>
+</resources>

@@ -25,6 +25,16 @@
 ```bash
 npm run dev
 ```
-
 التطبيق يعمل على المنفذ `3000`.
+
+## بناء تطبيق أندرويد (Android APK)
+
+### ١. البناء التلقائي عبر GitHub Actions:
+- عند رفع المشروع إلى مستودع GitHub على فرع `main` أو `master`، سيقوم سير العمل `.github/workflows/build.yml` تلقائياً ببناء ملف تطبيق الأندرويد `Azizi-POS-Grocery.apk`.
+- بعد انتهاء البناء (أيقونة خضراء)، ادخل على تبويب **Actions** في GitHub، ثم اضغط على أحدث تشغيل، وستجد ملف الـ APK جاهزاً للتنزيل في قسم **Artifacts** باسم `Azizi-POS-Grocery-APK`.
+
+### ٢. البناء عبر Android Studio:
+- افتح مجلد `android/` في برنامج **Android Studio**.
+- اضغط على **Build > Build Bundle(s) / APK(s) > Build APK(s)** لإنشاء ملف الـ APK وتثبيته مباشرة على هاتفك.
+
 

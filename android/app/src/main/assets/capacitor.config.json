@@ -1,0 +1,8 @@
+{
+	"appId": "com.azizipos.grocery",
+	"appName": "بقالة العزي للمواد الغذائية",
+	"webDir": "dist",
+	"android": {
+		"allowMixedContent": true
+	}
+}
