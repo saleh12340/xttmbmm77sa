@@ -13,16 +13,16 @@
     }
   }
 
+  function scanCanvases() {
+    try { document.querySelectorAll('canvas').forEach(rememberCanvas); } catch (_) {}
+  }
   try {
-    new MutationObserver(function () {
-      document.querySelectorAll('canvas').forEach(rememberCanvas);
-    }).observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(scanCanvases).observe(document.documentElement, { childList: true, subtree: true });
+    setInterval(scanCanvases, 500);
   } catch (_) {}
 
   function canvasBase64(canvas) {
-    var dataUrl = canvas.toDataURL('image/png');
-    var comma = dataUrl.indexOf(',');
-    return comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+    return canvas.toDataURL('image/png').split(',')[1];
   }
 
   function sendImageToWhatsApp(canvas, text, filename, phone) {
@@ -42,12 +42,8 @@
       if (files && files.length && files[0]) {
         return files[0].arrayBuffer().then(function (buffer) {
           if (android && android.shareImageToWhatsApp) {
-            var bytes = new Uint8Array(buffer);
-            var binary = '';
-            var chunk = 0x8000;
-            for (var i = 0; i < bytes.length; i += chunk) {
-              binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
-            }
+            var bytes = new Uint8Array(buffer), binary = '', chunk = 0x8000;
+            for (var i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
             android.shareImageToWhatsApp(btoa(binary), files[0].name || 'إيصال_بقالة_العزي.png', shareData.text || '', '');
             return;
           }
@@ -58,15 +54,12 @@
     };
   }
 
-  // Save generated PNG directly to Android Pictures instead of opening a browser/download page.
   try {
     var originalAnchorClick = HTMLAnchorElement.prototype.click;
     HTMLAnchorElement.prototype.click = function () {
       if (android && android.saveImage && this.download && /^data:image\/png/i.test(this.href || '')) {
         try {
-          var comma = this.href.indexOf(',');
-          var base64 = comma >= 0 ? this.href.slice(comma + 1) : this.href;
-          android.saveImage(base64, this.download || 'إيصال_بقالة_العزي.png');
+          android.saveImage(this.href.split(',')[1], this.download || 'إيصال_بقالة_العزي.png');
           return;
         } catch (_) {}
       }
@@ -74,53 +67,39 @@
     };
   } catch (_) {}
 
-  // Print/PDF: no external browser, GitHub, or Gemini. Receipt print uses the paired Bluetooth ESC/POS printer.
-  // Other printable documents use Android's native print dialog, which also offers Save as PDF.
+  // Native Android contact picker. CustomerDialog registers __aziziOnContactPicked.
+  window.__aziziPickContact = function () {
+    if (android && android.pickContact) android.pickContact();
+  };
+
   window.open = function (url, target, features) {
     if (url === '' || url == null) {
       if (android && (android.printBluetoothReceipt || android.printHtml)) {
-        var html = '';
-        var closed = false;
+        var html = '', closed = false;
         function submitPrint() {
           if (closed) return;
           closed = true;
+          scanCanvases();
           if (/طباعة الفاتورة/.test(html) && android.printBluetoothReceipt && lastReceiptCanvas) {
-            try {
-              android.printBluetoothReceipt(canvasBase64(lastReceiptCanvas));
-              return;
-            } catch (_) {}
+            try { android.printBluetoothReceipt(canvasBase64(lastReceiptCanvas)); return; } catch (_) {}
           }
           if (android.printHtml) android.printHtml(html, 'بقالة العزي - مستند');
         }
-        return {
-          document: {
-            write: function (value) { html += String(value || ''); },
-            close: submitPrint
-          },
-          focus: function () {},
-          print: submitPrint,
-          close: function () {}
-        };
+        return { document: { write: function (v) { html += String(v || ''); }, close: submitPrint }, focus: function () {}, print: submitPrint, close: function () {} };
       }
       return originalOpen(url, target, features);
     }
 
-    // WhatsApp: open the exact customer chat natively when a phone is available.
     if (typeof url === 'string' && /^https:\/\/(api\.whatsapp\.com|wa\.me)\//i.test(url)) {
       try {
+        scanCanvases();
         var parsed = new URL(url);
         var text = parsed.searchParams.get('text') || '';
         var phone = parsed.pathname.replace(/^\//, '');
         if (sendImageToWhatsApp(lastReceiptCanvas, text, 'إيصال_بقالة_العزي.png', phone)) return null;
-        if (android && android.shareTextToWhatsApp) {
-          android.shareTextToWhatsApp(text, phone);
-          return null;
-        }
-      } catch (e) {
-        console.warn('Azizi WhatsApp bridge failed', e);
-      }
+        if (android && android.shareTextToWhatsApp) { android.shareTextToWhatsApp(text, phone); return null; }
+      } catch (e) { console.warn('Azizi WhatsApp bridge failed', e); }
     }
-
     return originalOpen(url, target, features);
   };
 })();
