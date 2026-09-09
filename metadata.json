@@ -1,0 +1,6 @@
+{
+  "name": "بقالة العزي للمواد الغذائية",
+  "description": "تطبيق نقطة بيع ومحاسبة وإدارة المخزون والعملاء لبقالة العزي للمواد الغذائية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
